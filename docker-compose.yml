@@ -1,0 +1,48 @@
+# docker-compose.yml
+
+
+services:
+
+  # Serviço do Banco de Dados PostgreSQL
+  db:
+    image: postgres:16-alpine
+    container_name: grupomar_db
+    environment:
+      # Credenciais do PostgreSQL
+      POSTGRES_DB: grupomar_db
+      POSTGRES_USER: grupomar_user
+      POSTGRES_PASSWORD: password
+    # Mapeia a porta do container para a máquina local (opcional, mas útil para admin)
+    ports:
+      - "5432:5432"
+    # Monta um volume para persistir os dados mesmo após o container ser destruído
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+  # Serviço da Aplicação Backend (Django DRF)
+  backend:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    container_name: grupomar_backend
+    # Mapeia a porta 8000 do container para a porta 8000 da máquina local
+    ports:
+      - "8000:8000"
+    # Monta o volume do código para que as alterações na sua máquina local sejam refletidas instantaneamente
+    volumes:
+      - ./back:/usr/src/app
+    # Depende do serviço 'db'. Só inicia o backend após o DB estar pronto.
+    depends_on:
+      - db
+    environment:
+      # Variáveis de ambiente que o Django usará para conectar ao DB
+      DB_HOST: db
+      DB_NAME: grupomar_db
+      DB_USER: grupomar_user
+      DB_PASSWORD: password
+    # Comando que será executado ao iniciar o container
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+# Volumes para persistência de dados
+volumes:
+  postgres_data:
